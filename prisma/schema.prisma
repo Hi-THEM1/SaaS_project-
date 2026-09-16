@@ -1,0 +1,143 @@
+// prisma/schema.prisma
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  GRH
+  MANAGER
+  ADMIN
+  SUPERVISOR
+  OPERATOR
+  OPERATOR_PILOT
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum ScheduleStatus {
+  DRAFT
+  SUBMITTED
+  REOPEN_REQUESTED
+  REOPEN_AUTHORIZED
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+  DAY_OFF
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  username     String     @unique
+  passwordHash String
+  role         Role
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  assignments                    ScheduleAssignment[]
+  attendanceRecords              AttendanceRecord[]
+  modificationRequestsRequested  ModificationRequest[] @relation("RequestedBy")
+  modificationRequestsAuthorized ModificationRequest[] @relation("AuthorizedBy")
+}
+
+model WorkingPlaceCode {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  isActive  Boolean  @default(true) // Soft delete: inactive codes never appear in pickers
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WeeklySchedule {
+  id            String         @id @default(cuid())
+  weekStartDate DateTime       // Monday
+  weekEndDate   DateTime       // Sunday
+  status        ScheduleStatus @default(DRAFT)
+  submittedAt   DateTime?
+  submittedBy   String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  assignments          ScheduleAssignment[]
+  parkHours            ParkHours[]
+  modificationRequests ModificationRequest[]
+  attendanceRecords    AttendanceRecord[]
+
+  @@unique([weekStartDate])
+}
+
+model ParkHours {
+  id         String         @id @default(cuid())
+  scheduleId String
+  schedule   WeeklySchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  dayOfWeek  DayOfWeek
+  openTime   String         // e.g. "10:00"
+  closeTime  String         // e.g. "18:00"
+
+  @@unique([scheduleId, dayOfWeek])
+}
+
+model ScheduleAssignment {
+  id            String         @id @default(cuid())
+  scheduleId    String
+  schedule      WeeklySchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dayOfWeek     DayOfWeek
+  codesSnapshot String         // FROZEN string (e.g. "RR/FR", "OFF"). Never an FK to WorkingPlaceCode
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@unique([scheduleId, userId, dayOfWeek])
+}
+
+model AttendanceRecord {
+  id         String           @id @default(cuid())
+  scheduleId String
+  schedule   WeeklySchedule   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dayOfWeek  DayOfWeek
+  status     AttendanceStatus
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@unique([scheduleId, userId, dayOfWeek])
+}
+
+model ModificationRequest {
+  id             String         @id @default(cuid())
+  scheduleId     String
+  schedule       WeeklySchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  requestedById  String
+  requestedBy    User           @relation("RequestedBy", fields: [requestedById], references: [id])
+  reason         String
+  status         String         @default("PENDING") // PENDING, APPROVED, REJECTED
+  authorizedById String?
+  authorizedBy   User?          @relation("AuthorizedBy", fields: [authorizedById], references: [id])
+  requestedAt    DateTime       @default(now())
+  authorizedAt   DateTime?
+}
