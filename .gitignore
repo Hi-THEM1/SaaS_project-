@@ -1,32 +1,63 @@
-# dependencies
+# Dependencies & Package Managers
 /node_modules
 /.pnp
 .pnp.js
 
-# Next.js build output
+# Next.js Build Output & Cache
 /.next/
 /out/
 /build
 
-# TypeScript
+# TypeScript Artifacts
 *.tsbuildinfo
 
-# SQLite Database & Prisma generated artifacts
+# SQLite Database & Prisma Data Files
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
 prisma/*.db
 prisma/*.db-journal
 
-# Environment files
+# Environment Files & Secrets
 .env
-.env*.local
-.env.production
+.env.*
+!.env.example
 
-# Logs
+# Certificates, Keys & Credentials
+*.pem
+*.key
+*.crt
+*.cer
+*.pfx
+*.p12
+credentials.json
+id_rsa*
+id_ed25519*
+
+# Logs & Debugging
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# OS artifacts
+# IDE & Editor Settings
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS Generated Files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
